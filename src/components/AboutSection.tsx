@@ -7,8 +7,9 @@ const AboutSection = () => {
       <div className="container mx-auto px-4 md:px-8">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Quem Somos</h2>
+          
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Há mais de 10 anos oferecendo soluções tecnológicas de qualidade e atendimento personalizado
+            Plataforma inteligente que conecta você a técnicos parceiros e assistências recomendadas, facilitando o diagnóstico e a solução dos seus problemas tecnológicos.
           </p>
         </div>
 
@@ -29,7 +30,7 @@ const AboutSection = () => {
           <div className="space-y-6">
             <h3 className="text-2xl md:text-3xl font-bold text-gray-800">Nossa História</h3>
             <p className="text-gray-600">
-              Fundada em 2015, a <span className="font-semibold text-blue-600">HelpTech</span> nasceu da paixão 
+              Fundada em 2025, a <span className="font-semibold text-blue-600">HelpTech</span> nasceu da paixão 
               por tecnologia e da percepção da necessidade de um suporte técnico que fosse realmente 
               acessível e compreensível para todos os usuários, independentemente do seu nível de conhecimento técnico.
             </p>
@@ -56,13 +57,8 @@ const AboutSection = () => {
               </div>
               
               <div className="flex items-start gap-3">
-                <div className="text-blue-600 mt-1">
-                  <CheckCircle size={22} />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-gray-800">Transparência Total</h4>
-                  <p className="text-gray-600">Explicamos cada etapa do processo e garantimos preços justos, sem surpresas.</p>
-                </div>
+                
+                
               </div>
             </div>
           </div>

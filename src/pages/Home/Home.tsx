@@ -42,7 +42,7 @@ const Home = () => {
   
   const [aboutContent, setAboutContent] = useState<AboutContent>({
     title: 'Quem Somos',
-    content: 'A HelpTech é uma empresa especializada em soluções tecnológicas, oferecendo suporte técnico de alta qualidade para computadores, notebooks, tablets e smartphones.'
+    content: 'A HelpTech é uma plataforma inteligente de intermediação técnica. Não realizamos serviços diretamente, mas ajudamos você a diagnosticar problemas e encontrar a melhor solução: agende com um técnico parceiro da nossa rede ou encontre assistências técnicas confiáveis próximas de você. Nosso objetivo é conectar você rapidamente à solução ideal, facilitando o acesso a profissionais e estabelecimentos recomendados.'
   });
   
   const [servicesContent, setServicesContent] = useState<ServicesContent>({
@@ -152,18 +152,33 @@ const Home = () => {
           <div className="container mx-auto px-4 md:px-8">
             <div className="flex flex-col md:flex-row items-center justify-between">
               <div className="md:w-1/2 mb-8 md:mb-0">
-                <h1 className="text-4xl md:text-5xl font-bold mb-4">{heroContent.title}</h1>
-                <p className="text-xl md:text-2xl mb-6">{heroContent.subtitle}</p>
-                <Link to="/dashboard">
-                  <Button 
-                    size="lg" 
-                    className="flex items-center gap-2 bg-white text-blue-700 hover:bg-gray-100"
-                  >
-                    <Bot size={20} />
-                    {heroContent.buttonText}
-                    <ArrowRight size={16} />
-                  </Button>
-                </Link>
+                <h1 className="text-4xl md:text-5xl font-bold mb-4">
+                  HelpTech: Conectando você à solução ideal
+                </h1>
+                <p className="text-xl md:text-2xl mb-6">
+                  Somos uma plataforma inteligente que ajuda você a diagnosticar problemas e encontrar a melhor solução: agende com um técnico parceiro ou encontre assistência técnica confiável próxima de você.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Link to="/dashboard">
+                    <Button 
+                      size="lg" 
+                      className="flex items-center gap-2 bg-white text-blue-700 hover:bg-gray-100"
+                    >
+                      <Bot size={20} />
+                      Falar com o Assistente
+                      <ArrowRight size={16} />
+                    </Button>
+                  </Link>
+                  <Link to="/dashboard?tab=localizacao">
+                    <Button
+                      size="lg"
+                      className="flex items-center gap-2 bg-white text-blue-700 hover:bg-gray-100"
+                    >
+                      <Wrench size={20} />
+                      Encontrar Assistência Próxima
+                    </Button>
+                  </Link>
+                </div>
               </div>
               <div className="md:w-1/2 flex justify-center">
                 <img 
@@ -229,24 +244,22 @@ const Home = () => {
                       <p className="text-gray-600">Análise de problemas comuns em computadores, smartphones e rede Wi-Fi com soluções precisas e personalizadas.</p>
                     </div>
                   </div>
-                  
                   <div className="flex items-start gap-4">
                     <div className="bg-blue-100 p-3 rounded-full text-blue-700">
                       <Calendar size={24} />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-lg">Agendamento Simples</h4>
-                      <p className="text-gray-600">Marque visitas técnicas ou serviços remotos diretamente pelo chat, escolhendo data e horário que melhor se adaptem à sua rotina.</p>
+                      <h4 className="font-semibold text-lg">Agendamento Rápido</h4>
+                      <p className="text-gray-600">Agende facilmente um atendimento com um técnico parceiro da plataforma, tudo pelo chat.</p>
                     </div>
                   </div>
-                  
                   <div className="flex items-start gap-4">
                     <div className="bg-blue-100 p-3 rounded-full text-blue-700">
-                      <CheckCircle size={24} />
+                      <Wrench size={24} />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-lg">Acompanhamento Completo</h4>
-                      <p className="text-gray-600">Receba atualizações sobre o status do seu atendimento e recomendações de manutenção preventiva para seus dispositivos.</p>
+                      <h4 className="font-semibold text-lg">Indicação de Assistências Próximas</h4>
+                      <p className="text-gray-600">Receba recomendações de assistências técnicas confiáveis e próximas para resolver seu problema rapidamente.</p>
                     </div>
                   </div>
                 </div>
@@ -263,89 +276,56 @@ const Home = () => {
           </div>
         </section>
 
-        {/* Services Section */}
-        <section id="services" className="py-16 bg-white">
-          <div className="container mx-auto px-4 md:px-8">
-            <h2 className="text-3xl font-bold text-center mb-12">{servicesContent.title}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {servicesContent.services.map((service, index) => (
-                <div 
-                  key={index} 
-                  className="bg-white rounded-lg p-6 shadow-md transition-transform hover:transform hover:scale-105"
-                >
-                  <div className="text-blue-600 mb-4">
-                    {getIconComponent(service.icon)}
-                  </div>
-                  <h3 className="text-xl font-semibold mb-2">{service.name}</h3>
-                  <p className="text-gray-600 mb-4">{service.description}</p>
-                  <p className="font-bold text-blue-600">{service.price}</p>
-                </div>
-              ))}
-            </div>
-            
-            <div className="text-center mt-12">
-              <Link to="/dashboard">
-                <Button 
-                  className="flex items-center gap-2"
-                >
-                  <Bot size={18} />
-                  Falar com um Especialista
-                  <ArrowRight size={16} />
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </section>
-
         {/* How It Works Section */}
         <section className="py-16 bg-white">
           <div className="container mx-auto px-4 md:px-8">
-            <h2 className="text-3xl font-bold text-center mb-12">Como Funciona Nosso Atendimento</h2>
+            <h2 className="text-3xl font-bold text-center mb-12">Como Funciona a HelpTech</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
               <div className="text-center">
                 <div className="bg-blue-100 h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-700">
                   <MessageSquare size={28} />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">1. Descreva o Problema</h3>
-                <p className="text-gray-600">Converse com nosso assistente virtual e explique o problema que está enfrentando.</p>
-              </div>
-              
-              <div className="text-center">
-                <div className="bg-blue-100 h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-700">
-                  <Bot size={28} />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">2. Receba Diagnóstico</h3>
-                <p className="text-gray-600">Nosso assistente fará perguntas específicas para entender e diagnosticar o problema.</p>
+                <h3 className="text-xl font-semibold mb-2">1. Diagnóstico Virtual</h3>
+                <p className="text-gray-600">
+                  Utilize nosso assistente virtual para identificar rapidamente o problema do seu equipamento e receber orientações iniciais.
+                </p>
               </div>
               
               <div className="text-center">
                 <div className="bg-blue-100 h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-700">
                   <Calendar size={28} />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">3. Agende o Serviço</h3>
-                <p className="text-gray-600">Escolha a data e horário mais convenientes para o atendimento técnico.</p>
+                <h3 className="text-xl font-semibold mb-2">2. Agende com um Técnico Parceiro</h3>
+                <p className="text-gray-600">
+                  Agende um atendimento com um técnico parceiro da nossa plataforma, de forma prática e segura.
+                </p>
               </div>
               
               <div className="text-center">
                 <div className="bg-blue-100 h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-700">
                   <Wrench size={28} />
                 </div>
+                <h3 className="text-xl font-semibold mb-2">3. Encontre Assistência Recomendada</h3>
+                <p className="text-gray-600">
+                  Veja indicações de assistências técnicas confiáveis e próximas, recomendadas pela HelpTech.
+                </p>
+              </div>
+              
+              <div className="text-center">
+                <div className="bg-blue-100 h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-700">
+                  <CheckCircle size={28} />
+                </div>
                 <h3 className="text-xl font-semibold mb-2">4. Solução Garantida</h3>
-                <p className="text-gray-600">Nossos técnicos especializados resolverão seu problema com qualidade e garantia.</p>
+                <p className="text-gray-600">
+                  Resolva seu problema com o suporte de profissionais qualificados e acompanhamento pela plataforma.
+                </p>
               </div>
             </div>
             
             <div className="text-center mt-12">
               <Link to="/dashboard">
-                <Button 
-                  size="lg"
-                  className="flex items-center gap-2"
-                >
-                  <Bot size={20} />
-                  Começar Agora
-                  <ArrowRight size={16} />
-                </Button>
+                
               </Link>
             </div>
           </div>

@@ -4,7 +4,7 @@ import Navbar from '@/components/Navbar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ChatInterface from '@/components/ChatInterface';
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom'; // Adicione esta linha
 import { Button } from '@/components/ui/button';
 
 const MapsNearby = ({ latitude, longitude, query }) => (
@@ -20,8 +20,22 @@ const MapsNearby = ({ latitude, longitude, query }) => (
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const location = useLocation(); // Adicione esta linha
+
+  // Pegue o parâmetro tab da URL
+  const params = new URLSearchParams(location.search);
+  const tabParam = params.get('tab');
+
+  // Defina o estado inicial do activeTab conforme o parâmetro
+  const [activeTab, setActiveTab] = useState(tabParam === 'localizacao' ? 'locations' : 'chat');
+
+  // Atualize o activeTab se o parâmetro mudar
+  useEffect(() => {
+    if (tabParam === 'localizacao') setActiveTab('locations');
+    else setActiveTab('chat');
+  }, [tabParam]);
+
   const [profileData, setProfile] = useState(undefined);
-  const [activeTab, setActiveTab] = useState('chat');
   const [userLocation, setUserLocation] = useState(null);
   const [showMap, setShowMap] = useState(false);
   const [cep, setCep] = useState('');
@@ -108,7 +122,7 @@ const Dashboard = () => {
           <Tabs defaultValue="chat" value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="mb-4">
               <TabsTrigger value="chat">Assistente Virtual</TabsTrigger>
-              <TabsTrigger value="locations">Localizar Estabelecimentos</TabsTrigger>
+              <TabsTrigger value="locations">Assistências Recomendadas</TabsTrigger>
             </TabsList>
 
             <TabsContent value="chat" className="h-[600px] overflow-auto">
@@ -124,16 +138,16 @@ const Dashboard = () => {
                     </svg>
                     <div>
                       <h1 className="font-bold text-lg">HelpTech</h1>
-                      <p className="text-xs opacity-80">Localizador de Assistências</p>
+                      <p className="text-xs opacity-80">Assistências Técnicas Recomendadas</p>
                     </div>
                   </div>
                 </div>
                 <div className="bg-indigo-50 rounded-b-lg shadow p-6">
                   <h2 className="text-2xl font-bold text-indigo-700 mb-2 text-center">
-                    Encontre Assistências Técnicas Próximas
+                    Encontre Assistências Técnicas Recomendadas Próximas
                   </h2>
                   <p className="text-gray-600 mb-6 text-center">
-                    Digite seu CEP para localizar estabelecimentos que podem te ajudar com serviços de informática.
+                    Digite seu CEP para localizar assistências técnicas recomendadas pela HelpTech e resolver seu problema com confiança e agilidade.
                   </p>
                   <form
                     onSubmit={e => {
@@ -167,15 +181,15 @@ const Dashboard = () => {
                   {showMap && userLocation && (
                     <div className="bg-white rounded-lg shadow p-4">
                       <h3 className="text-lg font-medium mb-2 text-indigo-700">
-                        Assistências próximas ao CEP <span className="font-mono">{cep}</span>
+                        Assistências recomendadas próximas ao CEP <span className="font-mono">{cep}</span>
                       </h3>
                       <MapsNearby
                         latitude={userLocation.latitude}
                         longitude={userLocation.longitude}
-                        query="assistência técnica computador"
+                        query="assistência técnica recomendada"
                       />
                       <p className="text-xs text-gray-500 mt-2 text-center">
-                        Resultados fornecidos pelo Google Maps.
+                        Resultados fornecidos pelo Google Maps. As assistências exibidas são recomendações da HelpTech para sua região.
                       </p>
                     </div>
                   )}
