@@ -23,12 +23,7 @@ const ChatHeader: React.FC = () => {
       </div>
       {user && (
         <div className="flex items-center gap-4">
-          <Button
-            className="bg-white text-blue-700 border border-blue-600 hover:bg-blue-50 px-4 py-2 text-sm rounded-full shadow"
-            onClick={() => navigate('/appointments')}
-          >
-            Meus Agendamentos
-          </Button>
+          
         </div>
       )}
     </div>
