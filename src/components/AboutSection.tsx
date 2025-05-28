@@ -18,7 +18,7 @@ const AboutSection = () => {
             <div className="relative">
               <div className="relative z-10">
                 <img 
-                  src="https://images.unsplash.com/photo-1573164574572-cb89e39749b4?auto=format&fit=crop&w=600&h=400" 
+                  src="../src/images/equipe-helptech.jpg" 
                   alt="Equipe HelpTech" 
                   className="rounded-lg shadow-xl w-full h-auto"
                 />
