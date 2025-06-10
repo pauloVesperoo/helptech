@@ -245,13 +245,8 @@ const Home = () => {
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
-                    <div className="bg-blue-100 p-3 rounded-full text-blue-700">
-                      <Calendar size={24} />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-lg">Agendamento Rápido</h4>
-                      <p className="text-gray-600">Agende facilmente um atendimento com um técnico parceiro da plataforma, tudo pelo chat.</p>
-                    </div>
+                  
+                    
                   </div>
                   <div className="flex items-start gap-4">
                     <div className="bg-blue-100 p-3 rounded-full text-blue-700">

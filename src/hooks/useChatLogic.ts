@@ -21,7 +21,7 @@ export const useChatLogic = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const initial = "Olá! Sou o assistente virtual da HelpTech. Posso te ajudar com dúvidas e problemas de tecnologia. Se quiser agendar um serviço com um parceiro, clique no botão 'Agendar'. Para encontrar assistências técnicas próximas, clique em 'Assistências Recomendadas'.";
+    const initial = "Olá! Sou o assistente virtual da HelpTech. Posso te ajudar com dúvidas e problemas de tecnologia. Se quiser agendar um serviço com um parceiro, clique no botão 'Agendar com Parceiros'. Para encontrar assistências técnicas próximas, clique em 'Assistências Recomendadas'.";
     setTimeout(() => {
       setBotResponse(initial);
     }, 500);
@@ -78,6 +78,13 @@ export const useChatLogic = () => {
     let responseText = "";
     const lower = text.toLowerCase();
 
+    // Palavras-chave de tecnologia
+    const techKeywords = [
+      "computador", "notebook", "pc", "windows", "mac", "linux", "formatação", "vírus", "rede", "wi-fi", "internet",
+      "hardware", "software", "impressora", "monitor", "teclado", "mouse", "celular", "smartphone", "tablet", "sistema",
+      "memória", "hd", "ssd", "placa", "driver", "conexão", "tecnologia", "suporte", "assistência", "reparo", "conserto"
+    ];
+
     // Se o usuário falar sobre agendamento
     if (
       lower.includes("agendar") ||
@@ -99,6 +106,11 @@ export const useChatLogic = () => {
     ) {
       responseText =
         "Para ver assistências técnicas próximas de você, clique no botão 'Assistências Recomendadas' acima e informe seu CEP.";
+    }
+    // Se não for sobre tecnologia, responde com mensagem padrão
+    else if (!techKeywords.some(keyword => lower.includes(keyword))) {
+      responseText =
+        "Só respondemos perguntas relacionadas a tecnologia, computadores, redes, dispositivos e suporte técnico. Por favor, envie uma dúvida sobre esses temas!";
     }
     // Para dúvidas técnicas, usa o ChatGPT normalmente
     else {
