@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
@@ -7,18 +6,49 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, Users, Calendar, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { createClient } from '@supabase/supabase-js';
 
 const AdminDashboard = () => {
-  const { profile } = useAuth();
+  const { profile, setProfile } = useAuth();
+  console.log('Profile from useAuth:', profile);
   const [activeTab, setActiveTab] = useState('dashboard');
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Verificar se o usuário é admin
-    if (profile && profile.role !== 'admin') {
+    if (!profile) {
+      console.log('Perfil ainda não carregado.');
+      return;
+    }
+
+    console.log('Perfil carregado no AdminDashboard:', profile);
+
+    if (profile.role !== 'admin') {
+      console.log('Redirecionando para /dashboard porque o role é:', profile.role);
       navigate('/dashboard');
     }
   }, [profile, navigate]);
+
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Erro ao buscar o perfil:', error.message);
+        setProfile(null);
+        return;
+      }
+
+      console.log('Perfil carregado no AuthContext:', data);
+      setProfile(data as Profile);
+    } catch (error) {
+      console.error('Erro inesperado ao buscar o perfil:', error);
+      setProfile(null);
+    }
+  };
 
   // Se ainda não carregou o perfil ou não é admin, não mostrar o dashboard
   if (!profile || profile.role !== 'admin') {

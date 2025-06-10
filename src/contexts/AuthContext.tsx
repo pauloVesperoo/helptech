@@ -70,6 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      console.log('Fetched profile:', data); // Verifique o perfil carregado
       setProfile(data as Profile);
     } catch (error) {
       console.error('Error fetching profile:', error);
