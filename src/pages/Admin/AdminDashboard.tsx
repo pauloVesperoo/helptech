@@ -124,19 +124,20 @@ const AdminDashboard = () => {
                   </CardContent>
                 </Card>
                 
+
                 <Card>
                   <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
                     <div>
-                      <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
-                      <CardDescription>Serviços aguardando</CardDescription>
+                      <CardTitle className="text-sm font-medium">Total de Parceiros</CardTitle>
+                      <CardDescription>Técnicos cadastrados na plataforma</CardDescription>
                     </div>
                     <Settings className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
                     <p className="text-2xl font-bold">
-                      {appointments.filter(a => a.status === 'pendente' || a.status === 'agendado').length}
+                      {users.filter(u => u.role === 'partner' || u.role === 'tecnico' || u.role === 'tecnicos').length}
                     </p>
-                    <p className="text-xs text-muted-foreground">Necessitam de aprovação</p>
+                    <p className="text-xs text-muted-foreground">Parceiros disponíveis</p>
                   </CardContent>
                 </Card>
               </div>
@@ -146,35 +147,78 @@ const AdminDashboard = () => {
                 <Card>
                   <CardContent className="p-0">
                     <div className="divide-y">
-                      {appointments.length === 0 ? (
-                        <div className="text-center text-gray-400 py-8">
-                          Nenhuma atividade recente encontrada.
-                        </div>
-                      ) : (
-                        appointments
-                          .sort((a, b) => {
-                            // Ordena do mais recente para o mais antigo
-                            const aDate = a.created_at || `${a.date}T${a.time}`;
-                            const bDate = b.created_at || `${b.date}T${b.time}`;
-                            return new Date(bDate).getTime() - new Date(aDate).getTime();
-                          })
-                          .slice(0, 5) // Mostra só os 5 mais recentes
-                          .map((appt, idx) => (
-                            <div key={appt.id || idx} className="flex items-center justify-between py-3 px-4">
+                      {(() => {
+                        // Junta usuários e agendamentos, marcando o tipo
+                        const recent = [
+                          ...users
+                            .filter(u => u.created_at)
+                            .map(u => ({
+                              type: 'user',
+                              created_at: u.created_at,
+                              name: u.full_name || u.email,
+                              email: u.email,
+                              id: u.id,
+                            })),
+                          ...appointments
+                            .filter(a => a.created_at)
+                            .map(a => ({
+                              type: 'appointment',
+                              created_at: a.created_at,
+                              details: a.details || a.service_type,
+                              user_id: a.user_id,
+                              id: a.id,
+                              date: a.date,
+                              time: a.time,
+                              status: a.status,
+                            })),
+                        ]
+                          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                          .slice(0, 5); // Mostra só os 5 mais recentes
+
+                        if (recent.length === 0) {
+                          return (
+                            <div className="text-center text-gray-400 py-8">
+                              Nenhuma atividade recente encontrada.
+                            </div>
+                          );
+                        }
+
+                        return recent.map((item, idx) =>
+                          item.type === 'user' ? (
+                            <div key={item.id || idx} className="flex items-center justify-between py-3 px-4">
                               <div>
-                                <p className="font-medium">
-                                  {appt.details || appt.service_type}
-                                </p>
+                                <p className="font-medium">Novo usuário cadastrado</p>
                                 <p className="text-sm text-muted-foreground">
-                                  Usuário: {users.find(u => u.id === appt.user_id)?.full_name || appt.user_id}
+                                  {'name' in item ? item.name : ''}
                                 </p>
+                                {'email' in item && (
+                                  <p className="text-xs text-muted-foreground">{item.email}</p>
+                                )}
                               </div>
                               <p className="text-sm text-muted-foreground">
-                                {appt.date} {appt.time}
+                                {item.created_at ? new Date(item.created_at).toLocaleString('pt-BR') : ''}
                               </p>
                             </div>
-                          ))
-                      )}
+                          ) : (
+                            <div key={item.id || idx} className="flex items-center justify-between py-3 px-4">
+                              <div>
+                                <p className="font-medium">
+                                  {'details' in item ? item.details : item.type === 'user' ? (item.name || item.email) : ''}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  Usuário: {'user_id' in item ? (users.find(u => u.id === item.user_id)?.full_name || item.user_id) : ''}
+                                </p>
+                                {'status' in item && (
+                                  <span className="text-xs text-blue-700">{item.status}</span>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                {item.created_at ? new Date(item.created_at).toLocaleString('pt-BR') : ''}
+                              </p>
+                            </div>
+                          )
+                        );
+                      })()}
                     </div>
                   </CardContent>
                 </Card>
