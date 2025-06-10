@@ -11,37 +11,38 @@ export type Database = {
     Tables: {
       appointments: {
         Row: {
-          created_at: string
-          date: string
-          details: string | null
           id: string
-          service_type: string
-          status: string
-          time: string
-          updated_at: string
           user_id: string | null
+          service_type: string
+          date: string
+          time: string
+          details: string | null
+          status: string
+          created_at: string
+          updated_at: string
+          technician_id: string
         }
         Insert: {
-          created_at?: string
-          date: string
-          details?: string | null
           id?: string
-          service_type: string
-          status?: string
-          time: string
-          updated_at?: string
           user_id?: string | null
+          service_type: string
+          date: string
+          time: string
+          details?: string | null
+          status?: string
+          created_at?: string
+          updated_at?: string
         }
         Update: {
-          created_at?: string
-          date?: string
-          details?: string | null
           id?: string
-          service_type?: string
-          status?: string
-          time?: string
-          updated_at?: string
           user_id?: string | null
+          service_type?: string
+          date?: string
+          time?: string
+          details?: string | null
+          status?: string
+          created_at?: string
+          updated_at?: string
         }
         Relationships: [
           {

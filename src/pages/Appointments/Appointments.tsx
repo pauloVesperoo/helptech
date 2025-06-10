@@ -3,8 +3,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
 import { Calendar, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { useSchedule } from '../../contexts/scheduleContext';
 
 // Lista fictícia de técnicos parceiros
 const partnerTechnicians = [
@@ -15,19 +17,51 @@ const partnerTechnicians = [
 
 const Appointments = () => {
   const { profile } = useAuth();
+  const {
+    appointments,
+    loading,
+    createAppointment,
+    fetchUserAppointments
+  } = useSchedule();
+  //novo::
+  const [selectedTech, setSelectedTech] = useState<number | null>(null);
+  const [date, setDate] = useState('');
+  const [issue, setIssue] = useState('');
   const navigate = useNavigate();
   const firstName = profile?.full_name?.split(' ')[0] || 'Usuário';
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
   // Aqui teríamos a lógica para buscar os agendamentos do usuário
-  const [appointments] = useState([]);
+  //const [appointments] = useState([]);
 
   // Estado para seleção de técnico
-  const [selectedTech, setSelectedTech] = useState<number | null>(null);
+  //const [selectedTech, setSelectedTech] = useState<number | null>(null);
 
   // Simula o agendamento
-  const handleSchedule = () => {
-    alert('Agendamento realizado com um técnico parceiro!');
-    navigate('/dashboard?tab=agendamento');
+  const handleSchedule = async (e: React.FormEvent) => {
+    try {
+      const newAppointment = await createAppointment({
+        user_id: '',
+        id: '',
+        technician_id: '',
+        date: '',
+        service_type: '',
+        details: ''
+      })
+    }
+    catch (error: any) {
+      console.error('Login error:', error);
+      setError(error?.message || 'Erro ao fazer login. Verifique suas credenciais.');
+    } finally {
+      setIsLoading(false);
+    }
+
+    // alert('Agendamento realizado com um técnico parceiro!');
+    // navigate('/dashboard?tab=agendamento');
+
+
   };
 
   return (
