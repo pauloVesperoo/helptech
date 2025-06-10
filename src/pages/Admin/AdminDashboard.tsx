@@ -6,12 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, Users, Calendar, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 
 const AdminDashboard = () => {
-  const { profile, setProfile } = useAuth();
-  console.log('Profile from useAuth:', profile);
+  const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [users, setUsers] = useState<any[]>([]);
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,27 +30,20 @@ const AdminDashboard = () => {
     }
   }, [profile, navigate]);
 
-  const fetchProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.error('Erro ao buscar o perfil:', error.message);
-        setProfile(null);
-        return;
-      }
-
-      console.log('Perfil carregado no AuthContext:', data);
-      setProfile(data as Profile);
-    } catch (error) {
-      console.error('Erro inesperado ao buscar o perfil:', error);
-      setProfile(null);
-    }
-  };
+  // Buscar usuários e agendamentos
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      // Busca usuários (tabela profiles)
+      const { data: usersData } = await supabase.from('profiles').select('*');
+      setUsers(usersData || []);
+      // Busca agendamentos (tabela appointments)
+      const { data: appointmentsData } = await supabase.from('appointments').select('*');
+      setAppointments(appointmentsData || []);
+      setLoading(false);
+    };
+    fetchData();
+  }, []);
 
   // Se ainda não carregou o perfil ou não é admin, não mostrar o dashboard
   if (!profile || profile.role !== 'admin') {
@@ -63,6 +58,17 @@ const AdminDashboard = () => {
               Esta página é restrita para administradores do sistema.
             </AlertDescription>
           </Alert>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gray-50">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8 flex-1 flex justify-center items-center">
+          <span className="text-gray-500 text-lg">Carregando dados do admin...</span>
         </div>
       </div>
     );
@@ -86,8 +92,6 @@ const AdminDashboard = () => {
               <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
               <TabsTrigger value="users">Usuários</TabsTrigger>
               <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
-              <TabsTrigger value="site">Configurações do Site</TabsTrigger>
-              <TabsTrigger value="ai-assistant">Assistente IA</TabsTrigger>
             </TabsList>
             
             <TabsContent value="dashboard" className="p-4">
@@ -101,8 +105,8 @@ const AdminDashboard = () => {
                     <Users className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold">10</p>
-                    <p className="text-xs text-muted-foreground">+2 desde o último mês</p>
+                    <p className="text-2xl font-bold">{users.length}</p>
+                    <p className="text-xs text-muted-foreground">Usuários cadastrados</p>
                   </CardContent>
                 </Card>
                 
@@ -115,8 +119,8 @@ const AdminDashboard = () => {
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold">24</p>
-                    <p className="text-xs text-muted-foreground">+5 desde a semana passada</p>
+                    <p className="text-2xl font-bold">{appointments.length}</p>
+                    <p className="text-xs text-muted-foreground">Agendamentos realizados</p>
                   </CardContent>
                 </Card>
                 
@@ -129,7 +133,9 @@ const AdminDashboard = () => {
                     <Settings className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold">7</p>
+                    <p className="text-2xl font-bold">
+                      {appointments.filter(a => a.status === 'pendente' || a.status === 'agendado').length}
+                    </p>
                     <p className="text-xs text-muted-foreground">Necessitam de aprovação</p>
                   </CardContent>
                 </Card>
@@ -140,15 +146,35 @@ const AdminDashboard = () => {
                 <Card>
                   <CardContent className="p-0">
                     <div className="divide-y">
-                      {[1, 2, 3, 4, 5].map((item) => (
-                        <div key={item} className="flex items-center justify-between py-3 px-4">
-                          <div>
-                            <p className="font-medium">Agendamento #{Math.floor(Math.random() * 1000)}</p>
-                            <p className="text-sm text-muted-foreground">Usuário solicitou serviço de formatação</p>
-                          </div>
-                          <p className="text-sm text-muted-foreground">há {Math.floor(Math.random() * 24)} horas</p>
+                      {appointments.length === 0 ? (
+                        <div className="text-center text-gray-400 py-8">
+                          Nenhuma atividade recente encontrada.
                         </div>
-                      ))}
+                      ) : (
+                        appointments
+                          .sort((a, b) => {
+                            // Ordena do mais recente para o mais antigo
+                            const aDate = a.created_at || `${a.date}T${a.time}`;
+                            const bDate = b.created_at || `${b.date}T${b.time}`;
+                            return new Date(bDate).getTime() - new Date(aDate).getTime();
+                          })
+                          .slice(0, 5) // Mostra só os 5 mais recentes
+                          .map((appt, idx) => (
+                            <div key={appt.id || idx} className="flex items-center justify-between py-3 px-4">
+                              <div>
+                                <p className="font-medium">
+                                  {appt.details || appt.service_type}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  Usuário: {users.find(u => u.id === appt.user_id)?.full_name || appt.user_id}
+                                </p>
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                {appt.date} {appt.time}
+                              </p>
+                            </div>
+                          ))
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -161,16 +187,10 @@ const AdminDashboard = () => {
                 <Card>
                   <CardContent className="p-0">
                     <div className="divide-y">
-                      {[
-                        { name: "Admin", email: "admin@helptech.com", role: "admin" },
-                        { name: "João Silva", email: "joao@exemplo.com", role: "client" },
-                        { name: "Maria Santos", email: "maria@exemplo.com", role: "client" },
-                        { name: "Carlos Oliveira", email: "carlos@exemplo.com", role: "client" },
-                        { name: "Ana Pereira", email: "ana@exemplo.com", role: "client" }
-                      ].map((user, index) => (
-                        <div key={index} className="flex items-center justify-between py-3 px-4">
+                      {users.map((user, index) => (
+                        <div key={user.id || index} className="flex items-center justify-between py-3 px-4">
                           <div>
-                            <p className="font-medium">{user.name}</p>
+                            <p className="font-medium">{user.full_name || user.email}</p>
                             <p className="text-sm text-muted-foreground">{user.email}</p>
                           </div>
                           <span className={`px-2 py-1 text-xs rounded-full ${
@@ -189,7 +209,29 @@ const AdminDashboard = () => {
             <TabsContent value="appointments">
               <div className="p-6">
                 <h3 className="text-lg font-semibold mb-4">Lista de Agendamentos</h3>
-                <p className="text-gray-500">Implementação completa em breve.</p>
+                <Card>
+                  <CardContent className="p-0">
+                    <div className="divide-y">
+                      {appointments.length === 0 ? (
+                        <div className="text-center text-gray-400 py-8">Nenhum agendamento encontrado.</div>
+                      ) : (
+                        appointments.map((appt, index) => (
+                          <div key={appt.id || index} className="flex flex-col md:flex-row md:items-center md:justify-between py-3 px-4">
+                            <div>
+                              <p className="font-medium">{appt.details || appt.service_type}</p>
+                              <p className="text-sm text-muted-foreground">
+                                Usuário: {users.find(u => u.id === appt.user_id)?.full_name || appt.user_id}
+                              </p>
+                            </div>
+                            <div className="text-xs text-blue-700 mt-2 md:mt-0">
+                              {appt.date} {appt.time} <span className="ml-2">{appt.status}</span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </TabsContent>
             
