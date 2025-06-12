@@ -76,68 +76,34 @@ export const useChatLogic = () => {
     setChatState(prev => ({ ...prev, isTyping: true }));
 
     let responseText = "";
-    const lower = text.toLowerCase();
 
-    // Palavras-chave de tecnologia
-    const techKeywords = [
-      "computador", "notebook", "pc", "windows", "mac", "linux", "formatação", "vírus", "rede", "wi-fi", "internet",
-      "hardware", "software", "impressora", "monitor", "teclado", "mouse", "celular", "smartphone", "tablet", "sistema",
-      "memória", "hd", "ssd", "placa", "driver", "conexão", "tecnologia", "suporte", "assistência", "reparo", "conserto"
-    ];
+    // Novo prompt para o ChatGPT: só responde sobre tecnologia, mas de forma natural
+    const systemPrompt = `
+Você é um assistente virtual da HelpTech, uma plataforma de suporte técnico.
+Responda de forma natural, educada e detalhada apenas perguntas relacionadas a tecnologia, computadores, redes, dispositivos eletrônicos, segurança digital, softwares, hardware, internet, suporte técnico e temas correlatos.
+Se a pergunta do usuário não for sobre tecnologia, responda educadamente: 
+"Desculpe, só posso responder dúvidas relacionadas a tecnologia, computadores, redes, dispositivos e suporte técnico."
+Se for uma saudação, cumprimente normalmente e se coloque à disposição para dúvidas técnicas.
+Nunca agende serviços diretamente pelo chat, apenas oriente o usuário a usar os botões da plataforma para agendamento ou busca de assistências.
+`;
 
-    // Se o usuário falar sobre agendamento
-    if (
-      lower.includes("agendar") ||
-      lower.includes("marcar") ||
-      lower.includes("atendimento") ||
-      lower.includes("visita") ||
-      lower.includes("parceiro")
-    ) {
-      responseText =
-        "Para agendar um serviço com um parceiro, clique no botão 'Agendar' acima e siga as instruções na plataforma. A HelpTech faz apenas a intermediação entre você e empresas parceiras.";
-    }
-    // Se o usuário falar sobre assistência próxima
-    else if (
-      lower.includes("assistência") ||
-      lower.includes("empresa") ||
-      lower.includes("loja") ||
-      lower.includes("próxima") ||
-      lower.includes("perto")
-    ) {
-      responseText =
-        "Para ver assistências técnicas próximas de você, clique no botão 'Assistências Recomendadas' acima e informe seu CEP.";
-    }
-    // Se não for sobre tecnologia, responde com mensagem padrão
-    else if (!techKeywords.some(keyword => lower.includes(keyword))) {
-      responseText =
-        "Só respondemos perguntas relacionadas a tecnologia, computadores, redes, dispositivos e suporte técnico. Por favor, envie uma dúvida sobre esses temas!";
-    }
-    // Para dúvidas técnicas, usa o ChatGPT normalmente
-    else {
-      try {
-        const systemPrompt = `Você é um assistente virtual da HelpTech, uma plataforma que conecta usuários a empresas e técnicos parceiros de tecnologia. 
-Ajude o usuário com dúvidas e problemas de computador, mas nunca agende serviços diretamente pelo chat. 
-Se o usuário quiser agendar um serviço, oriente a clicar no botão 'Agendar'. 
-Se quiser encontrar assistências próximas, oriente a clicar em 'Assistências Recomendadas'. 
-Responda dúvidas técnicas normalmente.`;
+    try {
+      const messages: OpenAIMessage[] = [
+        { role: 'system', content: systemPrompt },
+      ];
 
-        const messages: OpenAIMessage[] = [
-          { role: 'system', content: systemPrompt },
-        ];
-        
-        chatState.messages.forEach(msg => {
-          messages.push({
-            role: msg.type === 'user' ? 'user' : 'assistant',
-            content: msg.text
-          });
+      chatState.messages.forEach(msg => {
+        messages.push({
+          role: msg.type === 'user' ? 'user' : 'assistant',
+          content: msg.text
         });
-        
-        messages.push({ role: 'user', content: text });
-        
-        responseText = await sendMessageToOpenAI(messages, apiKey);
-      } catch (error) {
-        responseText = "Desculpe, ocorreu um erro ao processar sua mensagem. Por favor, tente novamente.";
-      }
+      });
+
+      messages.push({ role: 'user', content: text });
+
+      responseText = await sendMessageToOpenAI(messages, apiKey);
+    } catch (error) {
+      responseText = "Desculpe, ocorreu um erro ao processar sua mensagem. Por favor, tente novamente.";
     }
 
     const typingDelay = Math.min(1000, Math.max(700, responseText.length * 10));

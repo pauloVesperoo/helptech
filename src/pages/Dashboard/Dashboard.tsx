@@ -1,13 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, createContext } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ChatInterface from '@/components/ChatInterface';
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate, useLocation } from 'react-router-dom'; // Adicione esta linha
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Calendar, User } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { useSchedule } from "@/contexts/scheduleContext";
+import { Appointment } from '@/types/database.types';
+import { partnerCompanies } from '@/data/partnerCompanies';
 
 const MapsNearby = ({ latitude, longitude, query }) => (
   <iframe
@@ -20,27 +23,22 @@ const MapsNearby = ({ latitude, longitude, query }) => (
   />
 );
 
-// Lista fictícia de técnicos parceiros
-const partnerTechnicians = [
-  { id: 1, name: 'João Silva', specialty: 'Computadores', rating: 4.8 },
-  { id: 2, name: 'Maria Oliveira', specialty: 'Redes e Wi-Fi', rating: 4.7 },
-  { id: 3, name: 'Carlos Souza', specialty: 'Notebooks', rating: 4.9 },
-];
-
 const Dashboard = () => {
   const { user } = useAuth();
-  const location = useLocation(); // Adicione esta linha
+  const location = useLocation();
+  const { createAppointment, fetchUserAppointments, appointments, setAppointments } = useSchedule();
 
   // Pegue o parâmetro tab da URL
   const params = new URLSearchParams(location.search);
   const tabParam = params.get('tab');
 
   // Defina o estado inicial do activeTab conforme o parâmetro
-  const [activeTab, setActiveTab] = useState(tabParam === 'localizacao' ? 'locations' : 'chat');
+  const [activeTab, setActiveTab] = useState(tabParam === 'localizacao' ? 'locations' : (tabParam === 'agendamento' ? 'scheduling' : 'chat'));
 
   // Atualize o activeTab se o parâmetro mudar
   useEffect(() => {
     if (tabParam === 'localizacao') setActiveTab('locations');
+    else if (tabParam === 'agendamento') setActiveTab('scheduling');
     else setActiveTab('chat');
   }, [tabParam]);
 
@@ -49,9 +47,21 @@ const Dashboard = () => {
   const [showMap, setShowMap] = useState(false);
   const [cep, setCep] = useState('');
   const [loadingCep, setLoadingCep] = useState(false);
-  const [selectedTech, setSelectedTech] = useState<number | null>(null);
-  const [appointments, setAppointments] = useState<any[]>([]);
+  const [selectedCompany, setSelectedCompany] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [showPartnerModal, setShowPartnerModal] = useState(false);
+  const [partnerDetails, setPartnerDetails] = useState(null);
+  const [showQuestionModal, setShowQuestionModal] = useState(false);
+  const [pergunta, setPergunta] = useState("");
+  const [tipoServico, setTipoServico] = useState("");
+  const [dataServico, setDataServico] = useState(""); // novo estado para a data
+  const [horaServico, setHoraServico] = useState(""); // novo estado para a hora
+  const [isQuestionLoading, setIsQuestionLoading] = useState(false);
+  const [mensagemPergunta, setMensagemPergunta] = useState("");
   const navigate = useNavigate();
+
+  const [meusAgendamentos, setMeusAgendamentos] = useState<any[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -66,6 +76,7 @@ const Dashboard = () => {
     }
   }, [user]);
 
+  // Corrigido: Atualiza o estado de appointments corretamente
   const fetchAppointments = async () => {
     if (user) {
       const { data, error } = await supabase
@@ -80,7 +91,7 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    fetchAppointments();
+    if (user) fetchUserAppointments(user.id);
     // eslint-disable-next-line
   }, [user]);
 
@@ -110,30 +121,76 @@ const Dashboard = () => {
     setLoadingCep(false);
   };
 
-  // Função para simular agendamento
-  const handleSchedule = async () => {
-    const tech = partnerTechnicians.find(t => t.id === selectedTech);
-    if (tech && user) {
-      const now = new Date();
-      const date = now.toISOString().split('T')[0]; // yyyy-mm-dd
-      const time = now.toTimeString().split(' ')[0]; // HH:MM:SS
+  // Função para agendar
+  const handleSchedule = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (selectedCompany === null || !user) return;
+    setIsLoading(true);
+    setError('');
+    try {
+      const company = partnerCompanies.find(c => c.id === selectedCompany);
+      if (!company) return;
+      // await createAppointment({
+      //   user_id: user.id,
+      //   service_type: 'Serviço com parceiro',
+      //   date: new Date().toISOString().slice(0, 10),
+      //   time: '09:00',
+      //   details: '',
+      //   company_name: company.name,
+      //   specialties: company.specialties.join(', '),
+      //   technician_id: '',
+      //   status: 'pending',
+      // });
+      setSelectedCompany(null);
+      await fetchUserAppointments(user.id);
+      navigate('/form-appointments');
+    } catch (error: any) {
+      setError(error?.message || 'Erro ao agendar. Tente novamente.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-      const { error } = await supabase
-        .from('appointments')
-        .insert([{
-          user_id: user.id, // deve ser uuid
-          date: date,       // yyyy-mm-dd
-          time: time,       // HH:MM:SS
-          service_type: tech.specialty,
-          details: `Agendamento com ${tech.name} (nota: ${tech.rating})`,
-          status: 'agendado'
-        }]);
-      if (!error) {
-        setSelectedTech(null);
-        setTimeout(fetchAppointments, 300);
-      } else {
-        alert('Erro ao agendar. Tente novamente.');
-      }
+  // Função para abrir detalhes
+  const handleShowDetails = (company) => {
+    setPartnerDetails(company);
+    setShowPartnerModal(true);
+  };
+
+  // Função para abrir o modal de pergunta
+  const handleOpenQuestionModal = () => {
+    setPergunta("");
+    setMensagemPergunta("");
+    setShowQuestionModal(true);
+  };
+
+  // Função para enviar a pergunta
+  const handleSubmitPergunta = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsQuestionLoading(true);
+    setMensagemPergunta("");
+    try {
+      const empresa = partnerCompanies.find(c => c.id === selectedCompany);
+      setMeusAgendamentos(prev => [
+        ...prev,
+        {
+          empresa: empresa ? empresa.name : "Empresa não selecionada",
+          data: dataServico,
+          hora: horaServico,
+          tipo: tipoServico,
+          detalhes: pergunta,
+        }
+      ]);
+      setMensagemPergunta("Agendamento salvo!");
+      setPergunta("");
+      setTipoServico("");
+      setDataServico("");
+      setHoraServico("");
+      setShowQuestionModal(false);
+    } catch {
+      setMensagemPergunta("Erro ao salvar o agendamento.");
+    } finally {
+      setIsQuestionLoading(false);
     }
   };
 
@@ -164,14 +221,11 @@ const Dashboard = () => {
       <Navbar />
 
       <div className="container mx-auto px-4 py-8">
-        {/* Topo restaurado */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
           <div>
             <h1 className="text-3xl font-bold mb-1">Olá, {firstName}!</h1>
             <p className="text-gray-600">Bem-vindo ao seu assistente virtual</p>
           </div>
-          {/* Exemplo de botão de configuração de API, se existir */}
-          {/* <Button className="bg-indigo-600 hover:bg-indigo-700">Configurar API</Button> */}
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-6">
@@ -197,90 +251,96 @@ const Dashboard = () => {
                     <User className="w-7 h-7 text-white" />
                     <div>
                       <h1 className="font-bold text-lg"><b>HelpTech</b></h1>
-                      <p className="text-xs opacity-80">Técnicos Parceiros HelpTech</p>
+                      <p className="text-xs opacity-80">Empresas Parceiras HelpTech</p>
                     </div>
                   </div>
                 </div>
                 <div className="bg-blue-50 rounded-b-lg shadow p-6">
                   <h2 className="text-2xl font-bold text-blue-700 mb-2 text-center">
-                    Agende com um Técnico Parceiro
+                    Agende com uma Empresa Parceira
                   </h2>
                   <p className="text-gray-600 mb-6 text-center">
-                    O atendimento será realizado por um técnico parceiro da plataforma HelpTech.<br />
-                    Escolha um profissional disponível abaixo:
+                    O atendimento será realizado por uma empresa parceira da plataforma HelpTech.<br />
+                    Escolha uma empresa disponível abaixo:
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                    {partnerTechnicians.map(tech => (
+                    {partnerCompanies.map(company => (
                       <Card
-                        key={tech.id}
-                        className={`cursor-pointer transition border-2 shadow-md hover:shadow-xl ${
-                          selectedTech === tech.id ? 'border-blue-600 ring-2 ring-blue-200' : 'border-gray-200'
-                        }`}
-                        onClick={() => setSelectedTech(tech.id)}
+                        key={company.id}
+                        className={`cursor-pointer transition border-2 ${selectedCompany === company.id ? 'border-blue-600' : 'border-gray-200'}`}
+                        onClick={() => setSelectedCompany(company.id)}
                       >
                         <CardContent className="flex flex-col items-center py-6">
-                          {/* Avatar fictício */}
-                          <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-3">
-                            <User className="w-8 h-8 text-blue-600" />
-                          </div>
-                          <h4 className="font-semibold text-lg mb-1">{tech.name}</h4>
-                          <span className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded mb-1">{tech.specialty}</span>
-                          <div className="flex items-center gap-1 mt-2">
-                            <span className="text-yellow-500 font-bold">{tech.rating}</span>
-                            <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.122-6.545L.488 6.91l6.564-.955L10 0l2.948 5.955 6.564.955-4.756 4.635 1.122 6.545z"/></svg>
-                          </div>
-                          <button
-                            className="mt-3 text-xs text-blue-600 underline hover:text-blue-800"
-                            type="button"
-                            onClick={e => {
-                              e.stopPropagation();
-                              alert(`Especialidade: ${tech.specialty}\nNota: ${tech.rating}`);
-                            }}
-                          >
-                            Ver detalhes
-                          </button>
+                          <User className="w-10 h-10 text-blue-600 mb-2" />
+                          <h4 className="font-semibold text-lg">{company.name}</h4>
+                          <p className="text-gray-600 text-sm mb-1">
+                            Especialidades: {company.specialties.join(', ')}
+                          </p>
+                          <p className="text-yellow-500 text-sm mt-1">Nota: {company.rating}</p>
                         </CardContent>
+                        <Button
+                          variant="outline"
+                          className="mt-3 text-xs"
+                          onClick={e => {
+                            e.stopPropagation();
+                            handleShowDetails(company);
+                          }}
+                        >
+                          Ver detalhes
+                        </Button>
                       </Card>
                     ))}
                   </div>
-                  <div className="flex justify-center">
-                    <Button
-                      disabled={selectedTech === null}
-                      onClick={handleSchedule}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      Confirmar Agendamento
-                    </Button>
-                  </div>
-                  {/* Lista de agendamentos realizados */}
-                  <div className="mt-10">
-                    <h3 className="text-lg font-semibold text-blue-700 mb-4 text-center">Meus Agendamentos</h3>
-                    {appointments.length === 0 ? (
-                      <div className="text-center text-gray-400">
-                        <Calendar className="w-12 h-12 mx-auto mb-2" />
-                        <span>Nenhum agendamento realizado ainda.</span>
-                      </div>
-                    ) : (
-                      <ul className="space-y-4">
-                        {appointments.map((appt, idx) => (
-                          <li key={appt.id || idx} className="bg-white rounded shadow flex flex-col md:flex-row md:items-center md:justify-between px-4 py-3 border border-blue-100">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                                <User className="w-6 h-6 text-blue-600" />
-                              </div>
-                              <div>
-                                <div className="font-semibold">{appt.tech_name}</div>
-                                <div className="text-xs text-blue-700">{appt.tech_specialty}</div>
-                              </div>
+                  <Button
+                    disabled={selectedCompany === null || isLoading}
+                    // onClick={handleSchedule}
+                    onClick={handleOpenQuestionModal}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    {isLoading ? 'Agendando...' : 'Confirmar Agendamento'}
+                  </Button>
+                  {error && <p className="text-red-500 mt-2">{error}</p>}
+                </div>
+                <div className="bg-white rounded-lg shadow-md p-6 mt-8">
+                  <h3 className="text-lg font-semibold text-blue-700 mb-4 text-center flex items-center justify-center gap-2">
+                    <Calendar className="w-5 h-5 text-blue-600" />
+                    Meus Agendamentos
+                  </h3>
+                  {meusAgendamentos.length > 0 ? (
+                    <ul className="space-y-4">
+                      {meusAgendamentos.map((appt, idx) => (
+                        <li
+                          key={idx}
+                          className="bg-gradient-to-r from-blue-50 to-blue-100 rounded shadow flex flex-col md:flex-row md:items-center md:justify-between px-6 py-4 border border-blue-200 hover:shadow-lg transition"
+                        >
+                          <div className="flex-1">
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                              <span className="inline-block px-3 py-1 bg-blue-600 text-white text-xs rounded font-semibold shadow">
+                                {appt.tipo}
+                              </span>
+                              <span className="inline-block px-3 py-1 bg-gray-200 text-blue-700 text-xs rounded font-semibold shadow">
+                                {appt.data} às {appt.hora}
+                              </span>
+                              <span className="inline-block px-3 py-1 bg-green-100 text-green-700 text-xs rounded font-semibold shadow">
+                                {appt.empresa}
+                              </span>
                             </div>
-                            <div className="text-sm text-gray-500 mt-2 md:mt-0">
-                              Agendado em: <span className="font-mono">{new Date(appt.scheduled_at).toLocaleString('pt-BR')}</span>
+                            <div className="text-sm text-gray-700 mb-1">
+                              <b>Detalhes:</b> {appt.detalhes}
                             </div>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
+                          </div>
+                          <div className="flex flex-col items-end mt-2 md:mt-0 md:ml-4">
+                            <span className="text-xs text-gray-400 font-mono">#{idx + 1}</span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="text-gray-400 text-center py-8">
+                      <Calendar className="w-8 h-8 mx-auto mb-2" />
+                      Nenhum agendamento realizado.
+                    </div>
+                  )}
                 </div>
               </div>
             </TabsContent>
@@ -364,8 +424,187 @@ const Dashboard = () => {
           </Tabs>
         </div>
       </div>
+
+      {showPartnerModal && partnerDetails && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-xl w-full relative">
+            <button
+              className="absolute top-2 right-2 text-gray-500 hover:text-blue-700 text-xl"
+              onClick={() => setShowPartnerModal(false)}
+            >
+              ×
+            </button>
+            <h2 className="text-2xl font-bold text-blue-700 mb-4">{partnerDetails.name}</h2>
+            <p className="mb-2"><b>Especialidades:</b> {partnerDetails.specialties.join(', ')}</p>
+            <p className="mb-2"><b>Nota:</b> {partnerDetails.rating}</p>
+            <p className="mb-2"><b>Descrição:</b> {partnerDetails.description}</p>
+            <p className="mb-2"><b>Endereço:</b> {partnerDetails.address}</p>
+            <p className="mb-2"><b>Telefone:</b> {partnerDetails.phone}</p>
+            <p className="mb-2"><b>Email:</b> {partnerDetails.email}</p>
+          </div>
+        </div>
+      )}
+
+      
+      {showQuestionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full relative">
+            <button
+              className="absolute top-2 right-2 text-gray-500 hover:text-blue-700 text-xl"
+              onClick={() => setShowQuestionModal(false)}
+            >
+              ×
+            </button>
+            <h2 className="text-2xl font-bold text-blue-700 mb-4">Formulário de Pergunta</h2>
+            <form onSubmit={handleSubmitPergunta}>
+              <label className="block mb-2 font-medium text-gray-700">
+                Data desejada:
+              </label>
+              <input
+                className="w-full border border-gray-300 rounded p-2 mb-4"
+                type="date"
+                value={dataServico}
+                onChange={e => setDataServico(e.target.value)}
+                required
+              />
+              <label className="block mb-2 font-medium text-gray-700">
+                Horário:
+              </label>
+              <input
+                className="w-full border border-gray-300 rounded p-2 mb-4"
+                type="time"
+                value={horaServico}
+                onChange={e => setHoraServico(e.target.value)}
+                required
+              />
+              <label className="block mb-2 font-medium text-gray-700">
+                Tipo de serviço:
+              </label>
+              <input
+                className="w-full border border-gray-300 rounded p-2 mb-4"
+                type="text"
+                value={tipoServico}
+                onChange={e => setTipoServico(e.target.value)}
+                placeholder="Ex: Manutenção, Instalação, Suporte..."
+                required
+              />
+              <label className="block mb-2 font-medium text-gray-700">
+                Detalhes:
+              </label>
+              <textarea
+                className="w-full border border-gray-300 rounded p-2 mb-4"
+                value={pergunta}
+                onChange={e => setPergunta(e.target.value)}
+                placeholder='Conte com mais detalhes qual é o problema.'
+                rows={5}
+                required
+              />
+              <Button
+                type="submit"
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                disabled={isQuestionLoading}
+              >
+                {isQuestionLoading ? "Enviando..." : "Enviar"}
+              </Button>
+              {mensagemPergunta && (
+                <p className="mt-4 text-center text-green-600">{mensagemPergunta}</p>
+              )}
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default Dashboard;
+
+export interface ScheduleContextType {
+  appointments: Appointment[];
+  loading: boolean;
+  createAppointment: (data: AppointmentInput) => Promise<void>;
+  fetchUserAppointments: (userId: string) => Promise<void>;
+  setAppointments: React.Dispatch<React.SetStateAction<Appointment[]>>;
+}
+
+export const ScheduleContext = createContext<ScheduleContextType>({
+  appointments: [],
+  loading: false,
+  createAppointment: async () => {},
+  fetchUserAppointments: async () => {},
+  setAppointments: () => {},
+});
+
+type AppointmentInput = {
+  status: string;
+  company_name: string;
+  specialties: string;
+  user_id: string;
+  service_type: string;
+  date: string;
+  time: string;
+  details: string;
+  technician_id: string;
+};
+
+export const ScheduleProvider = ({ children }: { children: React.ReactNode }) => {
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // ...restante do código
+  // Adicione implementações fictícias ou reais para createAppointment e fetchUserAppointments
+  const createAppointment = async (data: AppointmentInput) => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .insert([{
+          user_id: data.user_id,
+          service_type: data.service_type,
+          date: data.date,
+          time: data.time,
+          details: data.details,
+          status: data.status || 'pending',
+          company_name: data.company_name,
+          specialties: data.specialties,
+          technician_id: data.technician_id || null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          // NÃO envie id aqui!
+        }]);
+      if (error) throw error;
+      await fetchUserAppointments(data.user_id);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchUserAppointments = async (userId: string) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('user_id', userId)
+        .order('date', { ascending: true });
+      if (error) throw error;
+      setAppointments(data ?? []);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <ScheduleContext.Provider
+      value={{
+        appointments,
+        loading,
+        createAppointment,
+        fetchUserAppointments,
+        setAppointments,
+      }}
+    >
+      {children}
+    </ScheduleContext.Provider>
+  );
+};

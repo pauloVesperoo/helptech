@@ -27,7 +27,7 @@ export type Database = {
           user_id?: string | null
           service_type: string
           date: string
-          time: string
+          time: string 
           details?: string | null
           status?: string
           created_at?: string

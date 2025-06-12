@@ -7,6 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, Users, Calendar, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { partnerCompanies } from '@/data/partnerCompanies'; // Adicione este import no topo
 
 const AdminDashboard = () => {
   const { profile } = useAuth();
@@ -129,13 +130,13 @@ const AdminDashboard = () => {
                   <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
                     <div>
                       <CardTitle className="text-sm font-medium">Total de Parceiros</CardTitle>
-                      <CardDescription>Técnicos cadastrados na plataforma</CardDescription>
+                      <CardDescription>Empresas parceiras cadastradas</CardDescription>
                     </div>
                     <Settings className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
                     <p className="text-2xl font-bold">
-                      {users.filter(u => u.role === 'partner' || u.role === 'tecnico' || u.role === 'tecnicos').length}
+                      {partnerCompanies.length}
                     </p>
                     <p className="text-xs text-muted-foreground">Parceiros disponíveis</p>
                   </CardContent>
